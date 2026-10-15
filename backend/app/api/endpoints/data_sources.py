@@ -19,6 +19,16 @@ async def list_data_sources():
 
 
 @router.get(
+    "/health",
+    response_model=List[DataSourceResponse],
+    summary="List Data Sources Health",
+    description="Retrieve operational health and status for all surveillance feeds.",
+)
+async def list_data_sources_health():
+    return source_health_service.list_sources()
+
+
+@router.get(
     "/{id}",
     response_model=DataSourceResponse,
     summary="Get Data Source Details",

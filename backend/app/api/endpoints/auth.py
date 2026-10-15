@@ -50,7 +50,17 @@ PROTOTYPE_USERS = {
     description="Authenticate with username and password to obtain a signed JWT bearer token.",
 )
 async def login(credentials: LoginRequest):
-    user_record = PROTOTYPE_USERS.get(credentials.username.strip().lower())
+    identifier = (credentials.username or credentials.email or "").strip().lower()
+    if not identifier:
+        raise AuthenticationError("Username or email is required")
+
+    user_record = PROTOTYPE_USERS.get(identifier)
+    if not user_record:
+        for u in PROTOTYPE_USERS.values():
+            if u.get("email", "").lower() == identifier:
+                user_record = u
+                break
+
     if not user_record:
         raise AuthenticationError("Invalid username or password")
 
@@ -64,12 +74,24 @@ async def login(credentials: LoginRequest):
         extra_claims={"name": user_record["full_name"]},
     )
 
+    user_data = {
+        "id": f"usr-{user_record['username']}",
+        "name": user_record["full_name"],
+        "email": user_record.get("email", f"{user_record['username']}@outbreakiq.internal"),
+        "role": user_record["username"] if user_record["username"] in ["analyst", "admin", "viewer"] else "epidemiologist",
+        "organization": "Community Health Surveillance Network",
+        "department": "Epidemic Intelligence & Early Warning",
+        "lastLogin": "Just now",
+    }
+
     return TokenResponse(
         access_token=token,
         token_type="bearer",
         expires_in_minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES,
         role=role,
         username=user_record["username"],
+        token=token,
+        user=user_data,
     )
 
 

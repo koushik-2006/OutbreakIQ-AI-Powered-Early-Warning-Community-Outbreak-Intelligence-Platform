@@ -17,8 +17,8 @@ class BaselineResult(BaseModel):
 
 
 class AnomalyAnalysisRequest(BaseModel):
-    region_id: str
-    indicator: str
+    region_id: str = "REG-METRO-N"
+    indicator: str = "ILI"
     target_date: Optional[date] = None
     historical_window_days: int = 28
     sensitivity_threshold: float = 2.0

@@ -106,9 +106,10 @@ async def add_investigation_note(
     payload: InvestigationNoteCreate,
     current_user: AuthenticatedUser = Depends(require_analyst),
 ):
+    note_content = payload.note or payload.content or ""
     updated = investigation_service.add_case_note(
         investigation_id=id,
-        note_text=payload.note,
+        note_text=note_content,
         author_username=current_user.username,
     )
     return updated

@@ -35,10 +35,21 @@ export const authService = {
   async login(credentials: LoginCredentials): Promise<User> {
     try {
       // Attempt backend login first
-      const res = await apiClient.post<AuthResponse>('/api/v1/auth/login', credentials);
-      apiClient.setToken(res.token);
-      this.setCurrentUser(res.user);
-      return res.user;
+      const res = await apiClient.post<any>('/api/v1/auth/login', {
+        username: credentials.email,
+        email: credentials.email,
+        password: credentials.password,
+      });
+      const token = res.token || res.access_token;
+      apiClient.setToken(token);
+      const user = res.user || {
+        ...MOCK_USER,
+        name: res.username || 'Public Health Officer',
+        email: credentials.email,
+        role: res.role?.toLowerCase() || 'epidemiologist',
+      };
+      this.setCurrentUser(user);
+      return user;
     } catch (err) {
       // Graceful fallback to demo authentication for local testing / prototyping
       console.warn('Backend authentication unavailable, using simulated demo session:', err);

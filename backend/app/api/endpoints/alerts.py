@@ -100,3 +100,65 @@ async def review_alert(
         details=f"Alert review updated to {payload.review_status.value}. Notes: {payload.review_notes or 'None'}",
     )
     return updated
+
+
+@router.patch(
+    "/{id}",
+    response_model=AlertResponse,
+    summary="Update Alert Status (Frontend Alias)",
+    description="Updates alert review status with support for frontend status terminology.",
+)
+async def update_alert_alias(
+    id: str,
+    payload: dict,
+    current_user: AuthenticatedUser = Depends(require_epidemiologist),
+):
+    raw_status = payload.get("status") or payload.get("review_status", "PENDING_REVIEW")
+    status_map = {
+        "new": AlertReviewStatus.PENDING_REVIEW,
+        "investigating": AlertReviewStatus.UNDER_INVESTIGATION,
+        "monitoring": AlertReviewStatus.UNDER_INVESTIGATION,
+        "resolved": AlertReviewStatus.RESOLVED,
+        "dismissed": AlertReviewStatus.DISMISSED,
+        "PENDING_REVIEW": AlertReviewStatus.PENDING_REVIEW,
+        "UNDER_INVESTIGATION": AlertReviewStatus.UNDER_INVESTIGATION,
+        "RESOLVED": AlertReviewStatus.RESOLVED,
+        "DISMISSED": AlertReviewStatus.DISMISSED,
+    }
+    review_status = status_map.get(raw_status, AlertReviewStatus.UNDER_INVESTIGATION)
+    review_update = AlertReviewUpdate(
+        review_status=review_status,
+        review_notes=payload.get("review_notes") or payload.get("notes") or f"Status set to {review_status.value}",
+        assigned_to=payload.get("assigned_to") or current_user.username,
+    )
+    return alert_service.update_alert_review(
+        alert_id=id,
+        update=review_update,
+        reviewer_username=current_user.username,
+    )
+
+
+@router.post(
+    "/{id}/investigations",
+    summary="Create Investigation for Alert",
+    description="Convenience endpoint to open an investigation directly from an alert.",
+)
+async def create_investigation_for_alert(
+    id: str,
+    payload: dict,
+    current_user: AuthenticatedUser = Depends(require_epidemiologist),
+):
+    from app.schemas.investigation import InvestigationCreate
+    from app.services.investigation_service import investigation_service
+
+    inv_create = InvestigationCreate(
+        alert_id=id,
+        title=payload.get("title", f"Investigation for Alert {id}"),
+        assigned_to=payload.get("assignedTo") or payload.get("assigned_to") or current_user.username,
+        initial_notes=payload.get("notes") or f"Initialized from alert {id}",
+    )
+    inv = investigation_service.create_investigation_from_alert(
+        data=inv_create,
+        author_username=current_user.username,
+    )
+    return {"investigationId": inv.id, "id": inv.id, "title": inv.title, "status": inv.status.value}

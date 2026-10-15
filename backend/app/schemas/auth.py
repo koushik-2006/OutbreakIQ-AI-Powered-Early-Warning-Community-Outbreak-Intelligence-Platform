@@ -6,7 +6,8 @@ from app.utils.enums import AuditAction, UserRole
 
 
 class LoginRequest(BaseModel):
-    username: str = Field(..., min_length=1)
+    username: Optional[str] = None
+    email: Optional[str] = None
     password: str = Field(..., min_length=1)
 
 
@@ -16,6 +17,8 @@ class TokenResponse(BaseModel):
     expires_in_minutes: int
     role: UserRole
     username: str
+    token: Optional[str] = None
+    user: Optional[object] = None
 
 
 class UserResponse(BaseModel):

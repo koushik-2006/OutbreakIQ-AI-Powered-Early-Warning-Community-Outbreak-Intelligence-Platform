@@ -26,14 +26,25 @@ def create_application() -> FastAPI:
     )
 
     # CORS Middleware
-    if settings.BACKEND_CORS_ORIGINS:
-        app.add_middleware(
-            CORSMiddleware,
-            allow_origins=settings.BACKEND_CORS_ORIGINS,
-            allow_credentials=True,
-            allow_methods=["*"],
-            allow_headers=["*"],
-        )
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.BACKEND_CORS_ORIGINS,
+        allow_origin_regex=r"^https?:\/\/.*",
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    @app.on_event("startup")
+    async def startup_event():
+        try:
+            from app.core.database import engine, Base
+            import app.models  # noqa: F401
+            if engine is not None:
+                Base.metadata.create_all(bind=engine)
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(f"Could not auto-create database tables on startup: {e}")
 
     # Unversioned root & health endpoints
     app.include_router(unversioned_health_router, prefix="", tags=["Root"])

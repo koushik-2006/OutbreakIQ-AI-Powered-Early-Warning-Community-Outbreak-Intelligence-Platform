@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: aurora-health-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgrespassword}
+      POSTGRES_DB: ${POSTGRES_DB:-aurora_health}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - aurora_health_data:/var/lib/postgresql/data
+      - ./01_schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+      - ./02_indexes.sql:/docker-entrypoint-initdb.d/02_indexes.sql:ro
+      - ./03_views.sql:/docker-entrypoint-initdb.d/03_views.sql:ro
+      - ./04_seed_demo.sql:/docker-entrypoint-initdb.d/04_seed_demo.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-aurora_health}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  aurora_health_data:
+    driver: local

@@ -28,7 +28,8 @@ class InvestigationUpdate(BaseModel):
 
 
 class InvestigationNoteCreate(BaseModel):
-    note: str = Field(..., min_length=1, description="Investigation case note content")
+    note: Optional[str] = Field(None, description="Investigation case note content")
+    content: Optional[str] = Field(None, description="Alternative field for note content")
 
 
 class InvestigationResponse(BaseModel):
